@@ -1,0 +1,114 @@
+<Window x:Class="demo.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:demo"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="950" Width="700">
+    <Grid Margin="25">
+        <StackPanel>
+            <Label Content="Логин" FontWeight="SemiBold"/>
+            <TextBox x:Name="LoginTextBox" Height="32" Margin="0,0,0,12" HorizontalContentAlignment="Left" VerticalContentAlignment="Center"/>
+
+            <Label Content="Пароль" FontWeight="SemiBold"/>
+            <PasswordBox x:Name="PasswordBox" Height="32" Margin="0,0,0,20" HorizontalContentAlignment="Left" VerticalContentAlignment="Center"/>
+
+            <GroupBox Header="Капча:" Margin="0,0,0,15">
+                <UniformGrid Rows="2" Columns="2" Height="600" Width="600">
+                    <Image Source="/Resources/4.png" MouseLeftButtonDown="Captcha1_Click" Cursor="Hand" Margin="5" Stretch="UniformToFill"/>
+                    <Image Source="/Resources/2.png" MouseLeftButtonDown="Captcha2_Click" Cursor="Hand" Margin="5" Stretch="UniformToFill"/>
+                    <Image Source="/Resources/1.png" MouseLeftButtonDown="Captcha3_Click" Cursor="Hand" Margin="5" Stretch="UniformToFill"/>
+                    <Image Source="/Resources/3.png" MouseLeftButtonDown="Captcha4_Click" Cursor="Hand" Margin="5" Stretch="UniformToFill"/>
+                </UniformGrid>
+            </GroupBox>
+
+            <TextBlock x:Name="txtCaptcha" Text="" HorizontalAlignment="Center" FontWeight="SemiBold" Margin="0,0,0,20"/>
+
+            <Button Content="Войти" Height="45" FontSize="16" Click="Login_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
+
+
+
+
+
+
+
+
+
+
+
+
+using System.Collections.Generic;
+using System.Linq;
+using System.Windows;
+using System.Windows.Controls;
+
+
+namespace demo
+{
+    public partial class MainWindow : Window
+    {
+        private readonly DEMOEntities db = new DEMOEntities();
+        private readonly List<int> captchaOrder = new List<int>();
+
+        public MainWindow()
+        {
+            InitializeComponent();
+        }
+
+        private void Captcha1_Click(object sender, System.Windows.Input.MouseButtonEventArgs e) => AddToCaptcha(4);
+        private void Captcha2_Click(object sender, System.Windows.Input.MouseButtonEventArgs e) => AddToCaptcha(2);
+        private void Captcha3_Click(object sender, System.Windows.Input.MouseButtonEventArgs e) => AddToCaptcha(1);
+        private void Captcha4_Click(object sender, System.Windows.Input.MouseButtonEventArgs e) => AddToCaptcha(3);
+
+        private void AddToCaptcha(int number)
+        {
+            if (!captchaOrder.Contains(number))
+            {
+                captchaOrder.Add(number);
+                txtCaptcha.Text = $"Выбранный порядок: {string.Join(" → ", captchaOrder)}";
+            }
+        }
+
+        private void Login_Click(object sender, RoutedEventArgs e)
+        {
+            if (captchaOrder.Count != 4 || !captchaOrder.SequenceEqual(new[] { 1, 2, 3, 4 }))
+            {
+                MessageBox.Show("Неверный порядок капчи!\nКликните по картинкам строго 1 → 2 → 3 → 4",
+                                "Ошибка капчи", MessageBoxButton.OK, MessageBoxImage.Warning);
+                ResetCaptcha();
+                return;
+            }
+
+            string login = LoginTextBox.Text.Trim();
+            string password = PasswordBox.Password;
+
+            if (string.IsNullOrEmpty(login) || string.IsNullOrEmpty(password))
+            {
+                MessageBox.Show("Введите логин и пароль", "Ошибка");
+                return;
+            }
+
+            var user = db.User.FirstOrDefault(u => u.login == login && u.password == password);
+
+            if (user == null)
+            {
+                MessageBox.Show("Неверный логин или пароль", "Ошибка авторизации");
+                ResetCaptcha();
+                return;
+            }
+
+            MessageBox.Show($"Добро пожаловать, {user.login}!", "Успех");
+
+        }
+
+        private void ResetCaptcha()
+        {
+            captchaOrder.Clear();
+            txtCaptcha.Text = "Выбранный порядок: —";
+        }
+    }
+}
